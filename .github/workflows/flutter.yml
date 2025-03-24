@@ -1,91 +1,47 @@
-name: Flutter Enterprise CI/CD
+name: Flutter CI
 
-on:
-  push:
-    branches: [ master ]
-    paths-ignore:
-      - '**/*.md'
-      - '**/*.txt'
-      - '**/screenshots/**'
-  pull_request:
-    branches: [ master ]
-
-env:
-  FLUTTER_VERSION: '3.19.5'
+on: [push, pull_request]
 
 jobs:
-  android-build:
-    name: Android Build
+  build:
     runs-on: ubuntu-latest
-    timeout-minutes: 25
+
+    strategy:
+      matrix:
+        dart-version: [2.17.0]
+        flutter-version: [2.10.0]
 
     steps:
-    - name: Checkout Code
-      uses: actions/checkout@v4
+    - name: Checkout code
+      uses: actions/checkout@v2
 
-    - name: Setup Java
-      uses: actions/setup-java@v3
-      with:
-        distribution: 'temurin'
-        java-version: '17'
-        cache: 'gradle'
-
-    - name: Setup Flutter
+    - name: Set up Flutter
       uses: subosito/flutter-action@v2
       with:
-        flutter-version: ${{ env.FLUTTER_VERSION }}
-        channel: stable
-        cache: true
-        cache-key: flutter-ubuntu-${{ env.FLUTTER_VERSION }}
-        cache-path: ${{ github.workspace }}/.pub-cache
+        flutter-version: ${{ matrix.flutter-version }}
 
-    - name: Install Dependencies
+    - name: Install dependencies
       run: flutter pub get
 
-    - name: Run Tests
-      run: flutter test --coverage
+    - name: Run tests
+      run: flutter test
 
-    - name: Build Artifacts
-      run: |
-        flutter build apk --release --split-per-abi
-        flutter build appbundle --release
+    - name: Build APK
+      run: flutter build apk --release
 
-    - name: Upload Artifacts
-      uses: actions/upload-artifact@v4
+    - name: Build iOS
+      if: runner.os == 'macOS'
+      run: flutter build ios --release
+
+    - name: Upload APK
+      uses: actions/upload-artifact@v2
       with:
-        name: android-build-${{ github.run_number }}
-        path: |
-          build/app/outputs/flutter-apk/*.apk
-          build/app/outputs/bundle/release/*.aab
+        name: apk
+        path: build/app/outputs/flutter-apk/app-release.apk
 
-  ios-build:
-    name: iOS Build
-    needs: android-build
-    runs-on: macos-14
-    timeout-minutes: 45
-
-    steps:
-    - name: Checkout Code
-      uses: actions/checkout@v4
-
-    - name: Setup Flutter
-      uses: subosito/flutter-action@v2
+    - name: Upload iOS build
+      if: runner.os == 'macOS'
+      uses: actions/upload-artifact@v2
       with:
-        flutter-version: ${{ env.FLUTTER_VERSION }}
-        channel: stable
-        cache: true
-        cache-key: flutter-macos-${{ env.FLUTTER_VERSION }}
-        cache-path: ${{ github.workspace }}/.pub-cache
-
-    - name: Install Pods
-      run: |
-        cd ios && pod install --repo-update
-
-    - name: Build IPA
-      run: flutter build ipa --release
-
-    - name: Upload Artifact
-      uses: actions/upload-artifact@v4
-      with:
-        name: ios-build-${{ github.run_number }}
-        path: build/ios/ipa/*.ipa
+        name: ios-build
+        path: build/ios/ipa
