@@ -1,26 +1,53 @@
 name: im_app
-description: A new Flutter IM app.
+description: A new Flutter project.
+
 version: 1.0.0+1
 
 environment:
-  sdk: ">=2.16.0 <3.0.0"
+  sdk: ">=3.0.0 <4.0.0"  # 升级到 Dart 3.x 以兼容最新依赖
 
 dependencies:
   flutter:
     sdk: flutter
 
-  # Firebase 依赖（适配 Dart 2.16.0 的版本）
-  firebase_core: ^1.24.0
-  firebase_auth: ^3.11.2
-  cloud_firestore: ^3.5.1
-
-  # 状态管理（兼容旧版）
-  provider: ^6.0.5
+  # 基础组件
+  cupertino_icons: ^1.0.6  # 升级到最新稳定版
+  
+  # 状态管理
+  provider: ^6.1.1  # 升级到最新版
+  
+  # Firebase 套件
+  firebase_core: ^2.32.0
+  firebase_auth: ^4.18.0
+  cloud_firestore: ^4.16.0
+  firebase_messaging: ^14.7.0
+  
+  # 通知系统
+  flutter_local_notifications: ^15.3.0
+  
+  # 文件处理
+  image_picker: ^1.0.4
+  file_picker: ^6.1.2
+  
+  # 聊天界面
+  flutter_chat_ui: ^1.6.0
+  flutter_chat_types: ^4.0.0
+  
+  # 加密
+  encrypt: ^5.0.3  # 升级到最新版
+  
+  # 国际化
+  intl: ^0.18.1  # 升级到最新版
+  flutter_localizations:
+    sdk: flutter
 
 dev_dependencies:
   flutter_test:
     sdk: flutter
-  flutter_lints: ^1.0.4  # 降级 lint 规则
+  flutter_lints: ^3.0.0  # 添加代码规范检查
 
 flutter:
   uses-material-design: true
+
+  assets:
+    - assets/  # 确保项目根目录下存在该目录
