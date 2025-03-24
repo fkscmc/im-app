@@ -3,7 +3,7 @@ description: A new Flutter IM app.
 version: 1.0.0+1
 
 environment:
-  sdk: ">=3.0.0 <4.0.0"  # 升级 Dart SDK 版本以兼容最新依赖
+  sdk: ">=2.16.0 <3.0.0"  # 回退到旧版本（不推荐）
 
 dependencies:
   flutter:
