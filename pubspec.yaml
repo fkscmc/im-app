@@ -1,52 +1,63 @@
 name: im_app
-description: A new Flutter project.
+description: Instant Messaging Application
 
 version: 1.0.0+1
 
 environment:
-  sdk: ">=3.0.0 <4.0.0"  # 升级到 Dart 3.x
+  sdk: ">=3.7.0 <4.0.0"  # 对齐 Dart 3.7.2
 
 dependencies:
   flutter:
     sdk: flutter
 
-  # 基础组件
+  # UI 组件库
   cupertino_icons: ^1.0.6  # 升级到最新稳定版
-  
-  # 状态管理
-  provider: ^6.1.1  # 升级到最新版
-  
-  # Firebase 套件（2024年最新稳定版本）
-  firebase_core: ^2.32.0
-  firebase_auth: ^4.18.0
-  cloud_firestore: ^4.16.0
-  firebase_messaging: ^14.7.0
-  
-  # 通知系统
-  flutter_local_notifications: ^15.3.0
-  
+
+  # Firebase 套件（2024年3月兼容版本）
+  firebase_core: ^2.34.0
+  firebase_auth: ^4.20.0
+  cloud_firestore: ^4.18.0
+  firebase_messaging: ^14.9.0
+
+  # 聊天组件（使用 GitHub 最新兼容版本）
+  flutter_chat_ui: 
+    git:
+      url: https://github.com/flyerhq/flutter_chat_ui
+      ref: 3b4f7d6 # 2024-03 最新提交
+  flutter_chat_types: 
+    git:
+      url: https://github.com/flyerhq/flutter_chat_types
+      ref: 0b3e5a8
+
   # 文件处理
-  image_picker: ^1.0.4
-  file_picker: ^6.1.2
-  
-  # 聊天界面（使用明确版本）
-  flutter_chat_ui: ^3.9.0
-  flutter_chat_types: ^3.3.0  # 修正版本
-  
+  image_picker: ^1.0.6  # 空安全最新版
+  file_picker: ^7.0.0    # 支持 Android 14
+
+  # 通知系统
+  flutter_local_notifications: ^16.1.0
+
+  # 状态管理
+  provider: ^6.1.4       # 最新稳定版
+
   # 加密
-  encrypt: ^5.0.3  # 升级到最新版
-  
+  encrypt: ^5.0.4
+
   # 国际化
-  intl: ^0.18.1  # 升级到最新版
+  intl: ^0.19.0          # 升级到 Dart 3.7+ 兼容版
   flutter_localizations:
     sdk: flutter
 
 dev_dependencies:
   flutter_test:
     sdk: flutter
-  flutter_lints: ^3.0.0  # 添加代码规范检查
+  flutter_lints: ^3.0.7  # 新增代码质量检查
 
 flutter:
   uses-material-design: true
   assets:
     - assets/
+
+  # 启用 Dart 3.7 新特性
+  enable-experiments:
+    - inline-class
+    - records
