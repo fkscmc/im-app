@@ -34,14 +34,14 @@ jobs:
       run: flutter build ios --release
 
     - name: Upload APK
-      uses: actions/upload-artifact@v2
+      uses: actions/upload-artifact@v3
       with:
         name: apk
         path: build/app/outputs/flutter-apk/app-release.apk
 
     - name: Upload iOS build
       if: runner.os == 'macOS'
-      uses: actions/upload-artifact@v2
+      uses: actions/upload-artifact@v3
       with:
         name: ios-build
         path: build/ios/ipa
