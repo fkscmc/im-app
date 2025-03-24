@@ -3,19 +3,24 @@ description: A new Flutter IM app.
 version: 1.0.0+1
 
 environment:
-  sdk: ">=2.12.0 <3.0.0"
+  sdk: ">=3.0.0 <4.0.0"  # 升级 Dart SDK 版本以兼容最新依赖
 
 dependencies:
   flutter:
     sdk: flutter
-  firebase_core: latest_version
-  firebase_auth: latest_version
-  cloud_firestore: latest_version
-  provider: latest_version
+
+  # Firebase 核心依赖（2024年最新稳定版）
+  firebase_core: ^2.32.0
+  firebase_auth: ^4.18.0
+  cloud_firestore: ^4.16.0
+
+  # 状态管理
+  provider: ^6.1.1
 
 dev_dependencies:
   flutter_test:
     sdk: flutter
+  flutter_lints: ^3.0.0  # 添加代码规范检查
 
 flutter:
   uses-material-design: true
