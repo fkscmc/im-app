@@ -1,59 +1,36 @@
 name: im_app
-description: Instant Messaging Application
+description: A new Flutter project.
 
 version: 1.0.0+1
 
 environment:
-  sdk: ">=3.2.0 <4.0.0"  # 使用更精确的版本约束
+  sdk: ">=2.17.0 <3.0.0"
 
 dependencies:
   flutter:
     sdk: flutter
-
-  # 核心库
-  cupertino_icons: ^1.0.6
-
-  # Firebase 套件（2024年Q2最新兼容版本）
-  firebase_core: ^2.32.0
-  firebase_auth: ^4.18.0
-  cloud_firestore: ^4.16.0
-  firebase_messaging: ^14.7.0
-
-  # 聊天系统（确认版本兼容性）
-  flutter_chat_ui: ^1.6.0
-  flutter_chat_types: 
-    git:
-      url: https://github.com/flyerhq/flutter_chat_types
-      ref: v4.0.0  # 直接使用Git仓库确保版本正确
-
-  # 文件处理
-  image_picker: ^1.0.4
-  file_picker: ^6.1.2
-
-  # 通知系统
-  flutter_local_notifications: ^15.3.0
-
-  # 状态管理
-  provider: ^6.1.1
-
-  # 加密
-  encrypt: ^5.0.3
-
-  # 国际化
-  intl: ^0.18.1
+  cupertino_icons: ^1.0.2
+  provider: ^6.0.0
+  firebase_core: latest
+  firebase_auth: latest
+  cloud_firestore: latest
+  firebase_messaging: latest
+  flutter_local_notifications: latest
+  image_picker: latest
+  file_picker: latest
+  flutter_chat_ui: latest
+  flutter_chat_types: latest
+  encrypt: ^5.0.0
+  intl: ^0.17.0
   flutter_localizations:
     sdk: flutter
 
 dev_dependencies:
   flutter_test:
     sdk: flutter
-  flutter_lints: ^3.0.0
 
 flutter:
   uses-material-design: true
+
   assets:
     - assets/
-
-  # 启用新特性（可选）
-  enable-experiments:
-    - alternative-invalidation-strategy
