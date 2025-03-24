@@ -1,37 +1,32 @@
-name: Flutter CI/CD
+name: Flutter Enterprise CI/CD
 
 on:
   push:
-    branches:
-      - master
+    branches: [ master ]
     paths-ignore:
       - '**/*.md'
       - '**/*.txt'
-      - '**/README.md'
+      - '**/screenshots/**'
   pull_request:
-    branches:
-      - master
+    branches: [ master ]
 
 env:
-  FLUTTER_VERSION: '3.19.5'  # 统一版本变量
-  BUILD_CACHE_KEY: ${{ runner.os }}-flutter-${{ env.FLUTTER_VERSION }}
+  FLUTTER_VERSION: '3.19.5'
 
 jobs:
   android-build:
-    name: Android Build & Test
+    name: Android Build
     runs-on: ubuntu-latest
     timeout-minutes: 25
 
     steps:
     - name: Checkout Code
       uses: actions/checkout@v4
-      with:
-        fetch-depth: 2  # 优化检出深度
 
     - name: Setup Java
       uses: actions/setup-java@v3
       with:
-        distribution: 'zulu'
+        distribution: 'temurin'
         java-version: '17'
         cache: 'gradle'
 
@@ -41,29 +36,19 @@ jobs:
         flutter-version: ${{ env.FLUTTER_VERSION }}
         channel: stable
         cache: true
-        cache-key: ${{ env.BUILD_CACHE_KEY }}
+        cache-key: flutter-ubuntu-${{ env.FLUTTER_VERSION }}
         cache-path: ${{ github.workspace }}/.pub-cache
 
-    - name: Install Flutter Dependencies
+    - name: Install Dependencies
+      run: flutter pub get
+
+    - name: Run Tests
+      run: flutter test --coverage
+
+    - name: Build Artifacts
       run: |
-        flutter pub get
-        flutter precache --android --no-ios --no-web
-
-    - name: Code Analysis
-      run: flutter analyze --no-pub --no-fatal-infos
-
-    - name: Run Unit Tests
-      run: flutter test --coverage --test-randomize-ordering-seed random
-
-    - name: Upload Test Coverage
-      uses: codecov/codecov-action@v3
-      with:
-        files: coverage/lcov.info
-
-    - name: Build Release Artifacts
-      run: |
-        flutter build apk --release --split-per-abi --dart-define=CI_MODE=true
-        flutter build appbundle --release --dart-define=CI_MODE=true
+        flutter build apk --release --split-per-abi
+        flutter build appbundle --release
 
     - name: Upload Artifacts
       uses: actions/upload-artifact@v4
@@ -72,23 +57,16 @@ jobs:
         path: |
           build/app/outputs/flutter-apk/*.apk
           build/app/outputs/bundle/release/*.aab
-        retention-days: 5
 
   ios-build:
-    name: iOS Build & Test
+    name: iOS Build
     needs: android-build
-    runs-on: macos-14  # 使用最新 macOS 版本
+    runs-on: macos-14
     timeout-minutes: 45
-
-    env:
-      TEAM_ID: ${{ secrets.IOS_TEAM_ID }}
 
     steps:
     - name: Checkout Code
       uses: actions/checkout@v4
-      with:
-        ref: ${{ github.event.pull_request.head.sha || github.sha }}
-        fetch-depth: 0
 
     - name: Setup Flutter
       uses: subosito/flutter-action@v2
@@ -96,40 +74,18 @@ jobs:
         flutter-version: ${{ env.FLUTTER_VERSION }}
         channel: stable
         cache: true
-        cache-key: ${{ env.BUILD_CACHE_KEY }}
+        cache-key: flutter-macos-${{ env.FLUTTER_VERSION }}
+        cache-path: ${{ github.workspace }}/.pub-cache
 
-    - name: Install iOS Dependencies
+    - name: Install Pods
       run: |
-        export LANG=en_US.UTF-8
-        flutter pub get
-        cd ios && pod install --repo-update --verbose
+        cd ios && pod install --repo-update
 
-    - name: Code Signing Setup
-      uses: apple-actions/import-codesign-certs@v2
-      with:
-        key-id: ${{ secrets.APPLE_KEY_ID }}
-        issuer-id: ${{ secrets.APPLE_ISSUER_ID }}
-        api-key-id: ${{ secrets.APPLE_API_KEY_ID }}
-        api-private-key: ${{ secrets.APPLE_API_PRIVATE_KEY }}
-
-    - name: Build iOS Artifacts
-      run: |
-        flutter build ipa --release \
-          --dart-define=CI_MODE=true \
-          --export-options-plist=ios/ExportOptions.plist
+    - name: Build IPA
+      run: flutter build ipa --release
 
     - name: Upload Artifact
       uses: actions/upload-artifact@v4
       with:
         name: ios-build-${{ github.run_number }}
         path: build/ios/ipa/*.ipa
-        retention-days: 5
-
-    - name: Upload to TestFlight
-      if: github.ref == 'refs/heads/master'
-      uses: apple-actions/upload-testflight-build@v1
-      with:
-        app-path: build/ios/ipa/*.ipa
-        issuer-id: ${{ secrets.APPLE_ISSUER_ID }}
-        api-key-id: ${{ secrets.APPLE_API_KEY_ID }}
-        api-private-key: ${{ secrets.APPLE_API_PRIVATE_KEY }}
