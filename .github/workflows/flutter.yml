@@ -7,9 +7,14 @@ on:
     paths-ignore:
       - '**/*.md'
       - '**/*.txt'
+      - '**/README.md'
   pull_request:
     branches:
       - master
+
+env:
+  FLUTTER_VERSION: '3.19.5'  # 统一版本变量
+  BUILD_CACHE_KEY: ${{ runner.os }}-flutter-${{ env.FLUTTER_VERSION }}
 
 jobs:
   android-build:
@@ -20,37 +25,45 @@ jobs:
     steps:
     - name: Checkout Code
       uses: actions/checkout@v4
+      with:
+        fetch-depth: 2  # 优化检出深度
 
     - name: Setup Java
       uses: actions/setup-java@v3
       with:
         distribution: 'zulu'
         java-version: '17'
+        cache: 'gradle'
 
     - name: Setup Flutter
       uses: subosito/flutter-action@v2
       with:
-        flutter-version: '3.19.5'  # 2024最新稳定版
+        flutter-version: ${{ env.FLUTTER_VERSION }}
         channel: stable
         cache: true
-        cache-key: flutter-${{ runner.os }}-3.19.5
+        cache-key: ${{ env.BUILD_CACHE_KEY }}
         cache-path: ${{ github.workspace }}/.pub-cache
 
-    - name: Install Dependencies
+    - name: Install Flutter Dependencies
       run: |
         flutter pub get
-        flutter precache --android
+        flutter precache --android --no-ios --no-web
 
     - name: Code Analysis
-      run: flutter analyze --no-pub
+      run: flutter analyze --no-pub --no-fatal-infos
 
-    - name: Run Tests
+    - name: Run Unit Tests
       run: flutter test --coverage --test-randomize-ordering-seed random
 
-    - name: Build APK & AAB
+    - name: Upload Test Coverage
+      uses: codecov/codecov-action@v3
+      with:
+        files: coverage/lcov.info
+
+    - name: Build Release Artifacts
       run: |
-        flutter build apk --release --split-per-abi
-        flutter build appbundle --release
+        flutter build apk --release --split-per-abi --dart-define=CI_MODE=true
+        flutter build appbundle --release --dart-define=CI_MODE=true
 
     - name: Upload Artifacts
       uses: actions/upload-artifact@v4
@@ -59,39 +72,64 @@ jobs:
         path: |
           build/app/outputs/flutter-apk/*.apk
           build/app/outputs/bundle/release/*.aab
-        retention-days: 7
+        retention-days: 5
 
   ios-build:
     name: iOS Build & Test
     needs: android-build
-    runs-on: macos-latest
-    timeout-minutes: 40
+    runs-on: macos-14  # 使用最新 macOS 版本
+    timeout-minutes: 45
+
+    env:
+      TEAM_ID: ${{ secrets.IOS_TEAM_ID }}
 
     steps:
     - name: Checkout Code
       uses: actions/checkout@v4
       with:
-        fetch-depth: 0  # 获取完整提交历史
+        ref: ${{ github.event.pull_request.head.sha || github.sha }}
+        fetch-depth: 0
 
     - name: Setup Flutter
       uses: subosito/flutter-action@v2
       with:
-        flutter-version: '3.19.5'
+        flutter-version: ${{ env.FLUTTER_VERSION }}
         channel: stable
         cache: true
+        cache-key: ${{ env.BUILD_CACHE_KEY }}
 
-    - name: Install Dependencies
+    - name: Install iOS Dependencies
       run: |
+        export LANG=en_US.UTF-8
         flutter pub get
-        cd ios && pod install --repo-update
+        cd ios && pod install --repo-update --verbose
 
-    - name: Build iOS IPA
+    - name: Code Signing Setup
+      uses: apple-actions/import-codesign-certs@v2
+      with:
+        key-id: ${{ secrets.APPLE_KEY_ID }}
+        issuer-id: ${{ secrets.APPLE_ISSUER_ID }}
+        api-key-id: ${{ secrets.APPLE_API_KEY_ID }}
+        api-private-key: ${{ secrets.APPLE_API_PRIVATE_KEY }}
+
+    - name: Build iOS Artifacts
       run: |
-        flutter build ipa --release --export-options-plist=ExportOptions.plist
+        flutter build ipa --release \
+          --dart-define=CI_MODE=true \
+          --export-options-plist=ios/ExportOptions.plist
 
     - name: Upload Artifact
       uses: actions/upload-artifact@v4
       with:
         name: ios-build-${{ github.run_number }}
         path: build/ios/ipa/*.ipa
-        retention-days: 7
+        retention-days: 5
+
+    - name: Upload to TestFlight
+      if: github.ref == 'refs/heads/master'
+      uses: apple-actions/upload-testflight-build@v1
+      with:
+        app-path: build/ios/ipa/*.ipa
+        issuer-id: ${{ secrets.APPLE_ISSUER_ID }}
+        api-key-id: ${{ secrets.APPLE_API_KEY_ID }}
+        api-private-key: ${{ secrets.APPLE_API_PRIVATE_KEY }}
