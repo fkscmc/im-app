@@ -1,47 +1,47 @@
-name: Flutter CI/CD
+name: Flutter CI
 
-on:
-  push:
-    branches:
-      - master  # 保持使用 master 分支
-    paths-ignore:
-      - '**/*.md'
-  pull_request:
-    branches:
-      - master  # PR 目标分支保持 master
+on: [push, pull_request]
 
 jobs:
-  test-and-build:
-    name: Test & Build
+  build:
     runs-on: ubuntu-latest
-    timeout-minutes: 30
 
     strategy:
       matrix:
-        flutter-version: ['3.16.9']
-        include:
-          - flutter-version: '3.16.9'
-            channel: stable
+        dart-version: [2.17.0]
+        flutter-version: [2.10.0]
 
     steps:
-    - name: Checkout Code
-      uses: actions/checkout@v4
+    - name: Checkout code
+      uses: actions/checkout@v2
+
+    - name: Set up Flutter
+      uses: subosito/flutter-action@v2
       with:
-        ref: ${{ github.ref }}  # 明确指定使用触发分支
+        flutter-version: ${{ matrix.flutter-version }}
 
-    # ... 其他步骤保持不变 ...
+    - name: Install dependencies
+      run: flutter pub get
 
-  build-ios:
-    name: iOS Build
-    needs: test-and-build
-    runs-on: macos-latest
-    timeout-minutes: 45
+    - name: Run tests
+      run: flutter test
 
-    steps:
-    - name: Checkout Code
-      uses: actions/checkout@v4
+    - name: Build APK
+      run: flutter build apk --release
+
+    - name: Build iOS
+      if: runner.os == 'macOS'
+      run: flutter build ios --release
+
+    - name: Upload APK
+      uses: actions/upload-artifact@v2
       with:
-        ref: master  # 明确检出 master 分支
-        fetch-depth: 0  # 获取完整提交历史
+        name: apk
+        path: build/app/outputs/flutter-apk/app-release.apk
 
-    # ... 其他步骤保持不变 ...
+    - name: Upload iOS build
+      if: runner.os == 'macOS'
+      uses: actions/upload-artifact@v2
+      with:
+        name: ios-build
+        path: build/ios/ipa
