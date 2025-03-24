@@ -30,8 +30,8 @@ dependencies:
   file_picker: ^6.1.2
   
   # 聊天界面（使用明确版本）
-  flutter_chat_ui: ^1.6.0
-  flutter_chat_types: ^4.0.0
+  flutter_chat_ui: ^3.9.0
+  flutter_chat_types: ^3.3.0  # 修正版本
   
   # 加密
   encrypt: ^5.0.3  # 升级到最新版
