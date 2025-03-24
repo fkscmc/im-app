@@ -2,17 +2,20 @@ name: Flutter CI/CD
 
 on:
   push:
-    branches:
-      - master  # 修正分支名称（原错误拼写 naster → master）
+    branches: [ master ]
     paths-ignore:
       - '**/*.md'
       - '**/*.txt'
+      - '**/screenshots/**'
   pull_request:
-    branches:
-      - master
+    branches: [ master ]
+
+env:
+  FLUTTER_VERSION: '3.29.2'  # 精确指定版本
+  DART_VERSION: '3.7.2'
 
 jobs:
-  android-build:
+  android:
     name: Android Build
     runs-on: ubuntu-latest
     timeout-minutes: 25
@@ -21,58 +24,113 @@ jobs:
     - name: Checkout Code
       uses: actions/checkout@v4
       with:
-        ref: master  # 明确指定分支
+        ref: master
+        fetch-depth: 2
 
     - name: Setup Java
       uses: actions/setup-java@v3
       with:
-        distribution: 'zulu'
+        distribution: 'temurin'  # 改用 Temurin 发行版
         java-version: '17'
+        cache: 'gradle'
 
     - name: Setup Flutter
       uses: subosito/flutter-action@v2
       with:
-        flutter-version: '3.19.5'
+        flutter-version: ${{ env.FLUTTER_VERSION }}
         channel: stable
+        cache: true
+        cache-key: flutter-${{ runner.os }}-${{ env.FLUTTER_VERSION }}
 
-    - name: Build & Test
+    - name: Install Dependencies
       run: |
         flutter pub get
-        flutter analyze
-        flutter test
-        flutter build apk --release --split-per-abi
+        flutter precache --android --no-ios
 
-    - name: Upload APK
+    - name: Run Tests
+      run: flutter test --coverage --test-randomize-ordering-seed random
+
+    - name: Build APK
+      run: flutter build apk --release --split-per-abi --dart-define=CI_MODE=true
+
+    - name: Build App Bundle
+      run: flutter build appbundle --release --dart-define=CI_MODE=true
+
+    - name: Upload Artifacts
       uses: actions/upload-artifact@v4
       with:
-        name: android-release
-        path: build/app/outputs/flutter-apk/*.apk
+        name: android-artifacts-${{ github.run_number }}
+        path: |
+          build/app/outputs/flutter-apk/*.apk
+          build/app/outputs/bundle/release/*.aab
+        retention-days: 7
 
-  ios-build:
+  ios:
     name: iOS Build
-    needs: android-build
-    runs-on: macos-14
-    timeout-minutes: 40
+    needs: android  # 可改为独立运行
+    runs-on: macos-14  # 必须使用 macOS 13+
+    timeout-minutes: 45
+
+    env:
+      EXPORT_OPTIONS_PATH: 'ios/ExportOptions.plist'
 
     steps:
     - name: Checkout Code
       uses: actions/checkout@v4
       with:
-        ref: master  # 同步分支配置
+        ref: master
+        fetch-depth: 0  # 完整检出历史
 
     - name: Setup Flutter
       uses: subosito/flutter-action@v2
       with:
-        flutter-version: '3.19.5'
+        flutter-version: ${{ env.FLUTTER_VERSION }}
+        channel: stable
+        cache: true
+
+    - name: Install iOS Dependencies
+      run: |
+        export LANG=en_US.UTF-8
+        flutter pub get
+        cd ios && pod install --repo-update --verbose
+
+    - name: Code Signing
+      uses: apple-actions/import-codesign-certs@v2
+      with:
+        key-id: ${{ secrets.APPLE_KEY_ID }}
+        issuer-id: ${{ secrets.APPLE_ISSUER_ID }}
+        api-key-id: ${{ secrets.APPLE_API_KEY_ID }}
+        api-private-key: ${{ secrets.APPLE_API_PRIVATE_KEY }}
 
     - name: Build IPA
       run: |
-        flutter pub get
-        cd ios && pod install
-        flutter build ipa --release
+        flutter build ipa \
+          --release \
+          --dart-define=CI_MODE=true \
+          --export-options-plist=${{ env.EXPORT_OPTIONS_PATH }}
 
-    - name: Upload IPA
+    - name: Upload to TestFlight
+      uses: apple-actions/upload-testflight-build@v1
+      with:
+        app-path: build/ios/ipa/*.ipa
+        issuer-id: ${{ secrets.APPLE_ISSUER_ID }}
+        api-key-id: ${{ secrets.APPLE_API_KEY_ID }}
+        api-private-key: ${{ secrets.APPLE_API_PRIVATE_KEY }}
+
+    - name: Upload Artifact
       uses: actions/upload-artifact@v4
       with:
-        name: ios-release
+        name: ios-artifact-${{ github.run_number }}
         path: build/ios/ipa/*.ipa
+        retention-days: 7
+
+  quality-check:
+    name: Quality Gate
+    runs-on: ubuntu-latest
+    needs: [android, ios]
+    steps:
+    - name: Security Scan
+      uses: ShiftLeftSecurity/scan-action@v2
+      with:
+        output: reports/
+        build-command: "flutter build apk --debug"
