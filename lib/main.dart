@@ -1,8 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:provider/provider.dart';
-import 'screens/home_screen.dart';
 import 'services/auth_service.dart';
+import 'screens/login_screen.dart';
+import 'screens/register_screen.dart';
+import 'screens/home_screen.dart';
+import 'screens/chat_screen.dart';
+import 'screens/group_chat_screen.dart';
+import 'screens/profile_screen.dart';
+import 'screens/settings_screen.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -23,7 +29,16 @@ class MyApp extends StatelessWidget {
           primarySwatch: Colors.blue,
           visualDensity: VisualDensity.adaptivePlatformDensity,
         ),
-        home: HomeScreen(),
+        home: LoginScreen(),
+        routes: {
+          '/login': (context) => LoginScreen(),
+          '/register': (context) => RegisterScreen(),
+          '/home': (context) => HomeScreen(),
+          '/chat': (context) => ChatScreen(),
+          '/group-chat': (context) => GroupChatScreen(),
+          '/profile': (context) => ProfileScreen(),
+          '/settings': (context) => SettingsScreen(),
+        },
       ),
     );
   }
